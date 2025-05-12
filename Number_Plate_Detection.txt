@@ -1,0 +1,56 @@
+# Mount Google Drive
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Import libraries
+import os
+import cv2
+import easyocr
+import matplotlib.pyplot as plt
+from google.colab.patches import cv2_imshow
+
+# Initialize EasyOCR reader
+reader = easyocr.Reader(['en'])
+
+# Path to your dataset folder in Google Drive
+dataset_path = '/content/drive/MyDrive/Indian_Number_Plates/Sample_Images'
+
+# Function to detect and highlight number plate text
+def detect_number_plate(image_path):
+    img = cv2.imread(image_path)
+    result = reader.readtext(img)
+
+    number_plate_texts = []
+
+    for detection in result:
+        bbox, text, _ = detection
+        number_plate_texts.append(text)
+
+        # Draw rectangle around detected text
+        top_left = tuple(map(int, bbox[0]))
+        bottom_right = tuple(map(int, bbox[2]))
+        cv2.rectangle(img, top_left, bottom_right, (0, 255, 0), 2)
+        cv2.putText(img, text, top_left, cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+
+    return img, number_plate_texts
+
+# Function to analyze all images in the dataset folder
+def analyze_dataset(dataset_path):
+    detected_texts = {}
+    for image_filename in os.listdir(dataset_path):
+        if image_filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            image_path = os.path.join(dataset_path, image_filename)
+            print(f"\nProcessing {image_filename}...")
+            result_img, plate_text = detect_number_plate(image_path)
+            detected_texts[image_filename] = plate_text
+            print(f"Detected Text for {image_filename}: {plate_text}")
+            cv2_imshow(result_img)
+    return detected_texts
+
+# Run the analysis
+detected_texts = analyze_dataset(dataset_path)
+
+# Print all detected texts
+print("\nAll Detected Texts:")
+for filename, texts in detected_texts.items():
+    print(f"{filename}: {texts}")
